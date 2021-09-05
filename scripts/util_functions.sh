@@ -502,9 +502,14 @@ check_data() {
     $DATA && [ -d /data/adb ] && touch /data/adb/.rw && rm /data/adb/.rw && DATA_DE=true
     $DATA_DE && [ -d /data/adb/magisk ] || mkdir /data/adb/magisk || DATA_DE=false
   fi
-  set_nvbase "/data"
-  $DATA || set_nvbase "/cache/data_adb"
-  $DATA_DE && set_nvbase "/data/adb"
+  NVBASE=/data
+  $DATA || NVBASE=/cache/data_adb
+  $DATA_DE && NVBASE=/data/adb
+  resolve_vars
+}
+
+find_magisk_apk() {
+  APK="/system/addon.d/magisk/magisk.apk"
 }
 
 run_migrations() {
