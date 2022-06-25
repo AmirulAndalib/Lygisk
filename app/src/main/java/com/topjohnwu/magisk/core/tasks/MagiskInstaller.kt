@@ -174,7 +174,29 @@ abstract class MagiskInstallImpl protected constructor(
         return true
     }
 
-    private fun InputStream.copyAndCloseOut(out: OutputStream) = out.use { copyTo(it) }
+    private fun addond(): Boolean {
+        console.add("- Adding addon.d survival script")
+
+        val addond = "/system/addon.d"
+
+        val systemPartition = if (Info.isSAR) "/" else "/system"
+
+        // adapted /scripts/flash_script.sh addon.d
+        return arrayOf(
+            "mount -o rw,remount $systemPartition",
+            "rm -rf $addond/99-magisk.sh 2>/dev/null",
+            "rm -rf $addond/magisk 2>/dev/null",
+            "mkdir -p $addond/magisk",
+            "cp -prLf $installDir/. $addond/magisk",
+            "mv $addond/magisk/boot_patch.sh $addond/magisk/boot_patch.sh.in",
+            "mv $addond/magisk/addon.d.sh $addond/99-magisk.sh",
+            "cp $AppApkPath $addond/magisk/magisk.apk",
+        ).asSequence().map { it.sh() }.all { it.isSuccess }
+    }
+
+    private fun InputStream.cleanPump(out: OutputStream) = withStreams(this, out) { src, _ ->
+        src.copyTo(out)
+    }
 
     private fun newTarEntry(name: String, size: Long): TarEntry {
         console.add("-- Writing: $name")
@@ -527,7 +549,7 @@ abstract class MagiskInstallImpl protected constructor(
 
     protected fun patchFile(file: Uri) = extractFiles() && handleFile(file)
 
-    protected fun direct() = findImage() && extractFiles() && patchBoot() && flashBoot()
+    protected fun direct() = findImage() && extractFiles() && addond() && patchBoot() && flashBoot()
 
     protected fun secondSlot() =
         findSecondary() && extractFiles() && patchBoot() && flashBoot() && postOTA()
